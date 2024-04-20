@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"encoding/csv"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -12,76 +12,71 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 
 	"backend/repo"
+	"backend/service"
 )
-
-type Hello struct {
-	Name string `json:"name"`
-}
-
-type ProcessedFile struct {
-	FileName string `json:"fileName"`
-	Rows     int64  `json:"rows"`
-	Error    string `json:"error"`
-}
 
 type ErrorResponse struct {
 	Error string `json:"error"`
 }
 
 type FileResponse struct {
-	Files []ProcessedFile `json:"files"`
+	Files []service.ProcessedFile `json:"files"`
 }
 
-type UsersResponse struct {
-	Users []repo.User `json:"users"`
+type EntriesResponse struct {
+	Entries []repo.DirectoryEntry `json:"entries"`
 }
 
-func upload(pg repo.Postgres, c echo.Context) ([]ProcessedFile, error) {
+type DirectoriesResponse struct {
+	Directories []repo.Directory `json:"directories"`
+}
+
+func upload(pg repo.Postgres, c echo.Context) ([]service.ProcessedFile, error) {
 	form, err := c.MultipartForm()
+
 	if err != nil {
 		return nil, err
 	}
 
-	files := form.File["files"]
+	id := form.Value["ownerId"][0]
 
-	processedFiles := make([]ProcessedFile, 0, len(files))
+	ds := service.NewDirectoryService(pg, repo.User{ID: id})
 
-	for _, file := range files {
-		processed := ProcessedFile{FileName: file.Filename}
-		src, err := file.Open()
-		if err != nil {
-			processed.Error = fmt.Sprintf("Failed to open file: %v", err)
-			processedFiles = append(processedFiles, processed)
-			continue
-		}
+	return ds.ProcessForm(c.Request().Context(), form)
+}
 
-		defer src.Close()
+func listen(pg repo.Postgres) {
+	conn, err := pg.DB.Acquire(context.Background())
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Error acquiring connection:", err)
+		os.Exit(1)
+	}
+	defer conn.Release()
 
-		asCsv := csv.NewReader(src)
-		rows, err := asCsv.ReadAll()
-		// rows, err := pg.CopyFromCSV(c.Request().Context(), asCsv)
-
-		if err != nil {
-			processed.Error = fmt.Sprintf("Failed to copy rows: %v", err)
-		}
-
-		users := make([]repo.User, 0, len(rows))
-
-		for _, row := range rows {
-			users = append(users, repo.User{FirstName: row[0], LastName: row[1], Email: row[2]})
-		}
-
-		copied, err := pg.UsersCopyFrom(c.Request().Context(), users)
-		processed.Rows = copied
-
-		if err != nil {
-			processed.Error = fmt.Sprintf("Failed to copy rows: %v", err)
-		}
-
-		processedFiles = append(processedFiles, processed)
+	_, err = conn.Exec(context.Background(), "listen new_entry")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Error listening to chat channel:", err)
+		os.Exit(1)
 	}
 
-	return processedFiles, nil
+	for {
+		notification, err := conn.Conn().WaitForNotification(context.Background())
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "Error waiting for notification:", err)
+			os.Exit(1)
+		}
+
+		var entry repo.DirectoryEntryNotification
+		json.Unmarshal([]byte(notification.Payload), &entry)
+
+		contact, err := pg.CreateContact(context.Background(), repo.CreateContact{FirstName: entry.FirstName, LastName: entry.LastName, Email: entry.Email, OwnerId: entry.UserID})
+
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "Error creating contact: ", err)
+		} else {
+			fmt.Sprintln(contact)
+		}
+	}
 }
 
 func main() {
@@ -93,14 +88,11 @@ func main() {
 		log.Fatalf("Failed to open DB connection: %v", err)
 	}
 
+	go listen(pg)
 	defer pg.Close()
 
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
-
-	e.GET("/", func(c echo.Context) error {
-		return c.JSON(http.StatusOK, Hello{Name: "Julian"})
-	})
 
 	e.POST("/upload", func(c echo.Context) error {
 		files, err := upload(pg, c)
@@ -112,14 +104,24 @@ func main() {
 		return c.JSON(http.StatusOK, FileResponse{Files: files})
 	})
 
-	e.GET("/files", func(c echo.Context) error {
-		res, err := pg.GetAllUsers(context.Background())
+	e.GET("/entries", func(c echo.Context) error {
+		res, err := pg.GetAllDirectoryEntries(context.Background())
 
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, ErrorResponse{Error: fmt.Sprintf("%v", err)})
 		}
 
-		return c.JSON(http.StatusOK, UsersResponse{Users: res})
+		return c.JSON(http.StatusOK, EntriesResponse{Entries: res})
+	})
+
+	e.GET("/directories", func(c echo.Context) error {
+		res, err := pg.GetAllDirectories(context.Background())
+
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, ErrorResponse{Error: fmt.Sprintf("%v", err)})
+		}
+
+		return c.JSON(http.StatusOK, DirectoriesResponse{Directories: res})
 	})
 
 	e.Logger.Fatal(e.Start(":8080"))
