@@ -41,10 +41,10 @@ func (l EntryNotificationListener) listen() {
 		json.Unmarshal([]byte(notification.Payload), &entry)
 
 		repo := l.pg.NewContactRepo()
-		contact, err := repo.CreateContact(context.Background(), CreateContact{FirstName: entry.FirstName, LastName: entry.LastName, Email: entry.Email, OwnerId: entry.UserID})
+		_, err = repo.CreateContact(context.Background(), CreateContact{FirstName: entry.FirstName, LastName: entry.LastName, Email: entry.Email, OwnerId: entry.UserID})
 
 		if err != nil {
-			log.Println("Error creating contact: %v", err)
+			log.Println("Error creating contact: ", err)
 		}
 	}
 }
