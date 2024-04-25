@@ -35,6 +35,14 @@ type DirectoryEntryNotification struct {
 	EmailValid bool `json:"entry_email_valid"`
 }
 
+type EntryRepo struct {
+	Postgres
+}
+
+func (pg Postgres) NewEntryRepo() EntryRepo {
+	return EntryRepo{pg}
+}
+
 func NewDirectoryEntry(b BaseDirectoryEntry) DirectoryEntry {
 	u := DirectoryEntry{BaseDirectoryEntry: b, EmailValid: true}
 	u.validate()
@@ -53,7 +61,7 @@ func (u *DirectoryEntry) validate() {
 }
 
 // CreateDirectoryEntry inserts the validated input data into the database
-func (pg *Postgres) CreateDirectoryEntry(ctx context.Context, entry DirectoryEntry) (DirectoryEntry, error) {
+func (pg *EntryRepo) CreateDirectoryEntry(ctx context.Context, entry DirectoryEntry) (DirectoryEntry, error) {
 	entry.validate()
 
 	query := `INSERT INTO directory_entries
@@ -81,12 +89,30 @@ func (pg *Postgres) CreateDirectoryEntry(ctx context.Context, entry DirectoryEnt
 	return pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[DirectoryEntry])
 }
 
-// GetAllDirectoryEntries queries the database for all DirectoryEntries
-func (pg *Postgres) GetAllDirectoryEntries(ctx context.Context) ([]DirectoryEntry, error) {
-	query := `SELECT *
-						FROM directory_entries`
+type GetAllEntriesParams struct {
+	DirectoryId int
+	Limit       int
+	Offset      int
+	UserId      string
+}
 
-	rows, err := pg.DB.Query(ctx, query)
+// GetAllDirectoryEntries queries the database for all DirectoryEntries
+func (pg *EntryRepo) GetAllDirectoryEntries(ctx context.Context, params GetAllEntriesParams) ([]DirectoryEntry, error) {
+	query := `SELECT *
+						FROM directory_entries
+						WHERE directory_id = @directoryId AND user_id = @userId
+						ORDER BY order_id
+						LIMIT @limit
+						OFFSET @offset
+						`
+
+	args := pgx.NamedArgs{
+		"limit":       params.Limit,
+		"directoryId": params.DirectoryId,
+		"offset":      params.Limit * params.Offset,
+		"userId":      params.UserId,
+	}
+	rows, err := pg.DB.Query(ctx, query, args)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get directory_entries: %w", err)
 	}
@@ -95,9 +121,45 @@ func (pg *Postgres) GetAllDirectoryEntries(ctx context.Context) ([]DirectoryEntr
 	return pgx.CollectRows(rows, pgx.RowToStructByName[DirectoryEntry])
 }
 
+func (pg *EntryRepo) GetCountOfDirectoryEntries(ctx context.Context, params GetAllEntriesParams) (CountResult, error) {
+	query := `SELECT count(*) as count
+						FROM directory_entries
+						WHERE directory_id = @directoryId AND user_id = @userId
+						`
+
+	args := pgx.NamedArgs{
+		"directoryId": params.DirectoryId,
+		"userId":      params.UserId,
+	}
+	rows, err := pg.DB.Query(ctx, query, args)
+	if err != nil {
+		return CountResult{}, fmt.Errorf("Failed to get directory_entries: %w", err)
+	}
+	defer rows.Close()
+
+	return pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[CountResult])
+}
+
+func (pg *DirectoryRepo) GetCountOfDirectoryEntries(ctx context.Context, uid string) (CountResult, error) {
+	query := `SELECT count(*) as count FROM directories
+		WHERE user_id = @ownerId
+`
+	args := pgx.NamedArgs{
+		"ownerId": uid,
+	}
+
+	rows, err := pg.DB.Query(ctx, query, args)
+	if err != nil {
+		return CountResult{}, fmt.Errorf("Failed to get directories: %w", err)
+	}
+	defer rows.Close()
+
+	return pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[CountResult])
+}
+
 // DirectoryEntriesCopyFrom takes a slice of directory_entries and puts all in the database using the
-// Postgres COPY FROM command
-func (pg *Postgres) DirectoryEntriesCopyFrom(ctx context.Context, es []DirectoryEntry) (int64, error) {
+// EntryRepo COPY FROM command
+func (pg *EntryRepo) DirectoryEntriesCopyFrom(ctx context.Context, es []DirectoryEntry) (int64, error) {
 	return pg.DB.CopyFrom(
 		ctx,
 		pgx.Identifier{"directory_entries"},

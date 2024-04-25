@@ -29,30 +29,41 @@ func NewDirectoryService(pg repo.Postgres, owner repo.User) DirectoryService {
 	return DirectoryService{pg: pg, owner: owner}
 }
 
-func (ds *DirectoryService) ProcessForm(ctx context.Context, f *multipart.Form) ([]ProcessedFile, error) {
-	files := f.File["files"]
+type errorResponse struct {
+	fileName string
+	error    string
+}
 
-	processedFiles := make([]ProcessedFile, 0, len(files))
+type ProcessFormOpts struct {
+	ExcludeFirstRow bool
+}
+
+func (ds *DirectoryService) ProcessForm(ctx context.Context, files []*multipart.FileHeader, opts ProcessFormOpts) ([]repo.Directory, []errorResponse) {
+
+	processedFiles := make([]repo.Directory, 0, len(files))
+	errors := make([]errorResponse, 0)
 
 	for _, file := range files {
-		processed := ProcessedFile{FileName: file.Filename}
 		doc := repo.NewCreateDirectory(
 			repo.BaseDirectory{Name: file.Filename, OwnerId: ds.owner.ID})
 
-		dir, err := ds.pg.CreateDirectory(ctx, doc)
+		dirRepo := ds.pg.NewDirectoryRepo()
+		dir, err := dirRepo.CreateDirectory(ctx, doc)
+
 		if err != nil {
-			processed.Error = fmt.Sprintf("Failed to create directory: %v", err)
-			processedFiles = append(processedFiles, processed)
+			errors = append(errors, errorResponse{fileName: file.Filename, error: fmt.Sprintf("Failed to create directory: %v", err)})
 			continue
 		}
 
 		updateDir := repo.UpdateDirectoryParams{ID: dir.ID, Name: dir.Name, Status: dir.Status}
 
 		src, err := file.Open()
+
 		if err != nil {
+			errors = append(errors, errorResponse{fileName: file.Filename, error: fmt.Sprintf("Failed to open file: %v", err)})
+
 			updateDir.Status = "error"
-			processed.Error = fmt.Sprintf("Failed to open file: %v", err)
-			processedFiles = append(processedFiles, processed)
+			_, _ = dirRepo.UpdateDirectory(ctx, updateDir)
 			continue
 		}
 
@@ -64,7 +75,8 @@ func (ds *DirectoryService) ProcessForm(ctx context.Context, f *multipart.Form) 
 
 		if err != nil {
 			updateDir.Status = "error"
-			processed.Error = fmt.Sprintf("Failed to read rows: %v", err)
+
+			errors = append(errors, errorResponse{fileName: file.Filename, error: fmt.Sprintf("Failed to read rows: %v", err)})
 		}
 
 		users := make([]repo.DirectoryEntry, 0, len(rows))
@@ -72,28 +84,31 @@ func (ds *DirectoryService) ProcessForm(ctx context.Context, f *multipart.Form) 
 		doc.Entries = len(rows)
 
 		for i, row := range rows {
+			if opts.ExcludeFirstRow && i == 0 {
+				continue
+			}
 			users = append(users, repo.NewDirectoryEntry(repo.BaseDirectoryEntry{DirectoryID: dir.ID, OrderID: i, FirstName: row[0], LastName: row[1], Email: row[2], UserID: ds.owner.ID}))
 		}
 
-		copied, err := ds.pg.DirectoryEntriesCopyFrom(ctx, users)
-		processed.Rows = copied
+		entryRepo := ds.pg.NewEntryRepo()
+		_, err = entryRepo.DirectoryEntriesCopyFrom(ctx, users)
 
 		if err != nil {
 			updateDir.Status = "error"
-			processed.Error = fmt.Sprintf("Failed to copy rows: %v", err)
+			errors = append(errors, errorResponse{fileName: file.Filename, error: fmt.Sprintf("Failed to copy rows to DB: %v", err)})
 		} else {
 			updateDir.Status = "completed"
 		}
 
-		err = ds.pg.UpdateDirectory(ctx, updateDir)
+		updated, err := dirRepo.UpdateDirectory(ctx, updateDir)
 
 		if err != nil {
 			log.Printf("Failed to update status: %v", err)
 		}
 
-		processedFiles = append(processedFiles, processed)
+		processedFiles = append(processedFiles, updated)
 	}
 
-	return processedFiles, nil
+	return processedFiles, errors
 
 }

@@ -1,0 +1,354 @@
+openapi: 3.0.0
+info:
+  title: Email CSV Uploader
+  description: Upload a CSV file of first_name, last_name, email and get out contacts
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@jprokay.com
+
+servers:
+  - url: http://api.uploader.test.com/v1
+    description: Local server for development testing
+
+tags:
+  - name: Directories
+    description: Everything about the CSV files uploaded
+  - name: Directory Entries 
+    description: Rows within an uploaded Directory 
+  - name: Contacts 
+    description: Valid email address and personal info 
+  - name: Authentication
+    description: Dummy authentication
+
+paths:
+  /auth:
+    summary: Dummy endpoint to simulate auth
+    description: >
+      Dummy endpoint to simulate auth
+    get:
+      tags:
+        - Authentication
+      summary: Authenticate
+      description: >
+        Issues a cookie with a user ID necessary to complete other requests
+      operationId: getAuthenticate
+      responses:
+        '200':
+          description: no op with a cookie
+          content:
+            application/json:
+              schema:
+                type: object
+  /contacts:
+    summary: Represents valid contacts within the system
+    description: >
+      After a directory is uploaded, Contacts are created from the results.
+      Contacts are considered Unique based on their email address.
+      In the event that multiple directory entries target the same email, the
+      DB will update the first & last name
+    get:
+      tags:
+        - Contacts
+      summary: Get all Contacts
+      description: Get all Contacts
+      operationId: getAllContacts
+      parameters:
+        - name: userId
+          in: cookie
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query 
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+        - name: offset
+          in: query 
+          required: true
+          schema:
+            type: integer 
+            minimum: 1
+      responses:
+        '200':
+          description: A list of Contacts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContactsWithTotal'
+
+  /directories/{id}/entries:
+    summary: Represents each line in a Directory
+    description: >
+      1:1 mapping from a Directory CSV file to a row
+    get:
+      tags:
+        - Directory Entries
+      summary: Get Directory Entries for a Directory
+      description: Get Directory Entries for a Directory 
+      operationId: getEntriesForDirectory
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer 
+        - name: userId
+          in: cookie
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query 
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+        - name: offset
+          in: query 
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+
+      responses:
+        '200':
+          description: A list of Directory Entries
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EntriesWithTotal'
+  /directories:
+    summary: Represents a CSV file of email addresses and names
+    description: >
+      1:1 mapping of uploaded CSV file with validated contacts
+    get:
+      tags:
+        - Directories
+      summary: Get all uploaded Directories
+      description: Get all Directories for the input user
+      operationId: getAllDirectories
+      parameters:
+        - name: userId
+          in: cookie
+          required: true
+          schema:
+            type: string
+        - name: sort
+          in: query 
+          required: false
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+        - name: limit
+          in: query 
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+        - name: offset
+          in: query 
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: A list of Directories
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DirectoriesWithTotal'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    post:
+      tags:
+        - Directories
+      summary: Upload a new Directory
+      description: >
+        Upload a new CSV file for processing into contacts
+      operationId: createNewDirectory
+      parameters:
+        - name: userId
+          in: cookie
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data: 
+            schema:
+              type: object
+              properties:
+                columnLayout:
+                  type: array
+                  items:
+                    type: string
+                    enum: [first_name, last_name, email]
+                filename:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+                excludeFirstRow:
+                  type: boolean
+              required:
+                - header
+                - columnLayout 
+                - excludeFirstRow
+      responses:
+        '200':
+          $ref: '#/components/responses/Directory'
+        '500':
+          description: Some files may have failed to upload
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  completed:
+                    $ref: '#/components/schemas/DirectoriesWithTotal'
+                  errors:
+                    $ref: '#/components/schemas/ArrayOfDirectoryErrors'
+
+components:
+  responses:
+    ServerError:
+      description: An error occurred on the server
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Directory:
+      description: A single directory
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Directory'
+  schemas:
+    Contact:
+      type: object
+      properties:
+        contact_id:
+          type: string
+        contact_first_name:
+          type: string
+        contact_last_name:
+          type: string
+        contact_email:
+          type: string
+        user_id:
+          type: string
+      required:
+        - contact_id
+        - contact_first_name
+        - contact_last_name
+        - contact_email
+        - user_id
+    Directory:
+      type: object
+      properties:
+        directory_id:
+          type: integer
+        directory_created_at:
+          type: string
+        directory_name:
+          type: string
+        directory_status:
+          type: string
+          enum: [processing, error, completed]
+        directory_entries:
+          type: integer
+        user_id:
+          type: string
+          format: uuid
+      required:
+        - directory_id
+        - directory_created_at
+        - directory_name
+        - directory_status
+        - directory_entries
+        - user_id
+    ArrayOfDirectoryErrors:
+      type: array
+      items:
+        type: object
+        properties:
+          fileName:
+            type: string
+          error:
+            type: string
+    DirectoryEntry:
+      type: object
+      properties:
+        entry_id:
+          type: integer
+        entry_first_name:
+          type: string
+        entry_last_name:
+          type: string
+        entry_email:
+          type: string
+        directory_id:
+          type: integer
+        user_id:
+          type: string
+        order_id:
+          type: integer
+        entry_email_valid:
+          type: boolean
+      required:
+        - entry_id
+        - entry_first_name
+        - entry_last_name
+        - entry_email
+        - directory_id
+        - user_id
+        - order_id
+        - entry_email_valid
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+    DirectoriesWithTotal:
+      type: object
+      properties:
+        directories:
+          type: array
+          items:
+            $ref: '#/components/schemas/Directory'
+        total:
+          type: integer
+      required:
+        - directories
+        - total
+    ContactsWithTotal:
+      type: object
+      properties:
+        contacts:
+          type: array
+          items:
+            $ref: '#/components/schemas/Contact'
+        total:
+          type: integer
+      required:
+        - contacts 
+        - total
+    EntriesWithTotal:
+      type: object
+      properties:
+        entries:
+          type: array
+          items:
+            $ref: '#/components/schemas/DirectoryEntry'
+        total:
+          type: integer
+      required:
+        - entries 
+        - total
+

@@ -3,7 +3,6 @@ package repo
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -26,6 +25,14 @@ type Directory struct {
 	CreatedAt time.Time `db:"directory_created_at"`
 }
 
+type DirectoryRepo struct {
+	Postgres
+}
+
+func (pg Postgres) NewDirectoryRepo() DirectoryRepo {
+	return DirectoryRepo{pg}
+}
+
 func NewCreateDirectory(base BaseDirectory) CreateDirectory {
 	return CreateDirectory{BaseDirectory: base, Status: "processing"}
 }
@@ -38,7 +45,7 @@ func (doc *CreateDirectory) Completed() {
 	doc.Status = "completed"
 }
 
-func (pg *Postgres) CreateDirectory(ctx context.Context, directory CreateDirectory) (Directory, error) {
+func (pg *DirectoryRepo) CreateDirectory(ctx context.Context, directory CreateDirectory) (Directory, error) {
 	query := `INSERT INTO directories (directory_name, user_id)
 						VALUES (@name, @ownerId)
 						RETURNING *						
@@ -58,7 +65,7 @@ func (pg *Postgres) CreateDirectory(ctx context.Context, directory CreateDirecto
 	return pgx.CollectOneRow(rows, pgx.RowToStructByName[Directory])
 }
 
-func (pg *Postgres) GetAllDirectories(ctx context.Context) ([]Directory, error) {
+func (pg *DirectoryRepo) GetAllDirectories(ctx context.Context) ([]Directory, error) {
 	query := `SELECT * FROM directories
 `
 
@@ -71,13 +78,18 @@ func (pg *Postgres) GetAllDirectories(ctx context.Context) ([]Directory, error) 
 	return pgx.CollectRows(rows, pgx.RowToStructByName[Directory])
 }
 
-func (pg *Postgres) GetAllDirectoriesForUser(ctx context.Context, uid string) ([]Directory, error) {
+type GetAllDirectoriesParams struct {
+	UserId    string
+	Direction string
+}
+
+func (pg *DirectoryRepo) GetAllDirectoriesForUser(ctx context.Context, params GetAllDirectoriesParams) ([]Directory, error) {
 	query := `SELECT * FROM directories
 		WHERE user_id = @ownerId
+		ORDER BY directory_created_at desc 
 `
-
 	args := pgx.NamedArgs{
-		"ownerId": uid,
+		"ownerId": params.UserId,
 	}
 
 	rows, err := pg.DB.Query(ctx, query, args)
@@ -89,27 +101,50 @@ func (pg *Postgres) GetAllDirectoriesForUser(ctx context.Context, uid string) ([
 	return pgx.CollectRows(rows, pgx.RowToStructByName[Directory])
 }
 
+type CountResult struct {
+	Count int `db:"count"`
+}
+
+func (pg *DirectoryRepo) GetCountOfDirectoriesForUser(ctx context.Context, uid string) (CountResult, error) {
+	query := `SELECT count(*) as count FROM directories
+		WHERE user_id = @ownerId
+`
+	args := pgx.NamedArgs{
+		"ownerId": uid,
+	}
+
+	rows, err := pg.DB.Query(ctx, query, args)
+	if err != nil {
+		return CountResult{}, fmt.Errorf("Failed to get directories: %w", err)
+	}
+	defer rows.Close()
+
+	return pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[CountResult])
+}
+
 type UpdateDirectoryParams struct {
 	ID     int
 	Name   string
 	Status string
 }
 
-func (pg *Postgres) UpdateDirectory(ctx context.Context, dir UpdateDirectoryParams) error {
-	log.Printf("Updating directory %v", dir)
+func (pg *DirectoryRepo) UpdateDirectory(ctx context.Context, dir UpdateDirectoryParams) (Directory, error) {
 	query := `UPDATE directories
 						SET directory_name = @name, directory_status = @status
-						WHERE directory_id = @id`
+						WHERE directory_id = @id
+						RETURNING *`
+
 	args := pgx.NamedArgs{
 		"id":     dir.ID,
 		"name":   dir.Name,
 		"status": dir.Status,
 	}
 
-	_, err := pg.DB.Exec(ctx, query, args)
+	rows, err := pg.DB.Query(ctx, query, args)
 	if err != nil {
-		return fmt.Errorf("Failed to insert directory: %w", err)
+		return Directory{}, fmt.Errorf("Failed to update directory: %w", err)
 	}
 
-	return nil
+	defer rows.Close()
+	return pgx.CollectOneRow(rows, pgx.RowToStructByName[Directory])
 }
