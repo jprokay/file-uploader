@@ -1,7 +1,7 @@
 "use client"
 import { Directories, Directory, client } from "@/lib/contacts-api"
 import { DataTable } from "./data-table"
-import { PaginationState, createColumnHelper } from "@tanstack/react-table"
+import { ColumnDef, PaginationState, createColumnHelper } from "@tanstack/react-table"
 import { cookies, getCookieValue } from "@/lib/cookies"
 import { Badge } from "../ui/badge"
 
@@ -12,33 +12,36 @@ import { UploadDirectoryDemo } from "../dialogs/upload-directory-dialog"
 
 const ch = createColumnHelper<Directory>();
 
-const columns = [
-	ch.display({
+const columns: ColumnDef<Directory>[] = [
+	{
+		accessorKey: 'directory_id',
 		id: 'actions',
-		cell: props => {
-			return (
-				<Button variant="link" size="icon">
-					<Link href={`/directories/${props.row.original.directory_id}/entries`}>
-						<ExternalLink className="h-4 w-4" />
-					</Link>
-				</Button>
-			)
-		},
-		header: props => {
+		cell: props => (
+			<Button variant="link" size="icon">
+				<Link href={`/directories/${props.getValue()}/entries`}>
+					<ExternalLink className="h-4 w-4" />
+				</Link>
+			</Button>
+		),
+		header: () => {
 			return <UploadDirectoryDemo />
 		}
-	}),
-	ch.accessor('directory_name', {
-		header: 'File Name'
-	}),
-	ch.accessor('directory_status', {
-		cell: (props) => <Badge>{props.getValue()}</Badge>,
+	},
+	{
+		accessorKey: 'directory_name',
+		header: 'File Name',
+	},
+
+	{
+		accessorKey: 'directory_status',
+		cell: (props) => <Badge>{String(props.getValue())}</Badge>,
 		header: 'Status'
-	}),
-	ch.accessor('directory_created_at', {
+	},
+	{
+		accessorKey: 'directory_created_at',
 		cell: (props) => new Date(String(props.getValue())).toLocaleTimeString(),
 		header: 'Uploaded At'
-	})
+	}
 ]
 
 async function getData(props: PaginationState) {
@@ -61,7 +64,8 @@ async function getData(props: PaginationState) {
 export const DirectoriesDataTable = ({ data, rowCount }: { data: Directories, rowCount: number }) => {
 	return <DataTable queryKey={'directories'}
 		defaultPageSize={100} pageSizes={[25, 50, 100, 250, 500]}
-		data={data} columns={columns}
+		data={data}
+		columns={columns}
 		rowCount={rowCount}
 		queryFn={(state) => () => getData(state)} />
 }
