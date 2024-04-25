@@ -41,6 +41,7 @@ func (s *UserMiddleware) GetOrSetCookie(next echo.HandlerFunc) echo.HandlerFunc 
 }
 
 func main() {
+	log.SetOutput(os.Stdout)
 
 	pg, err := repo.NewPool(context.Background(), os.Getenv("DATABASE_URL"))
 
