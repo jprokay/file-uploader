@@ -70,5 +70,5 @@ func main() {
 
 	api.RegisterHandlers(e, server)
 
-	log.Fatal(e.Start(os.Getenv("BACKEND_HOST_PORT")))
+	log.Fatal(e.Start("0.0.0.0:" + os.Getenv("PORT")))
 }
