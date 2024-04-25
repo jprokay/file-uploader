@@ -111,6 +111,7 @@ export function UploadDirectoryForm() {
 								<Input type="file"
 									ref={ref}
 									name={name}
+									accept=".csv"
 									onBlur={onBlur}
 									multiple={false}
 									onChange={(e) => {
