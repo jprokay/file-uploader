@@ -29,6 +29,8 @@ async function getData(id: number, props: GetDataProps): Promise<DirectoryEntrie
 
 export default async function DirectoryEntries({ params }: { params: { id: number } }) {
   const data = await getData(params.id, { limit: 100, offset: 0 })
+
+  console.log("Entries Data: ", data)
   return (
     <main className="container mx-auto py-10">
 

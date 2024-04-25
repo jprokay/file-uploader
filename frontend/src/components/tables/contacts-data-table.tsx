@@ -27,7 +27,7 @@ async function getData(props: PaginationState) {
 
 	const res = await client.GET("/contacts", {
 		params: {
-			query: { limit: props.pageSize, offset: props.pageIndex + 1 },
+			query: { limit: props.pageSize, offset: props.pageIndex },
 			cookie: { userId: getCookieValue("userId") || "" }
 		},
 		headers: { Cookie: cookies() },

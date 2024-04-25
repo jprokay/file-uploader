@@ -29,6 +29,8 @@ async function getData(props: GetDataProps): Promise<DirectoriesWithTotal> {
 
 export default async function Home() {
   const data = await getData({ limit: 10, offset: 1, sort: "asc" })
+
+  console.log("Home Data: ", data)
   return (
     <div>
       <main className="container mx-auto py-10">

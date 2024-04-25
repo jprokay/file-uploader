@@ -26,7 +26,9 @@ async function getData(props: GetDataProps): Promise<ContactsWithTotal> {
 }
 
 export default async function Contacts() {
-  const data = await getData({ limit: 100, offset: 1 })
+  const data = await getData({ limit: 100, offset: 0 })
+
+  console.log("Contacts Data: ", data)
   return (
     <main className="container mx-auto py-10">
       <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl mb-4">
