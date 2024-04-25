@@ -3,8 +3,7 @@ package repo
 import (
 	"context"
 	"encoding/json"
-	"fmt"
-	"os"
+	"log"
 )
 
 type EntryNotificationListener struct {
@@ -22,22 +21,20 @@ func (l EntryNotificationListener) Listen() {
 func (l EntryNotificationListener) listen() {
 	conn, err := l.pg.DB.Acquire(context.Background())
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "Error acquiring connection:", err)
-		os.Exit(1)
+		log.Println("Error acquiring connection:", err)
 	}
 	defer conn.Release()
 
 	_, err = conn.Exec(context.Background(), "listen new_entry")
+
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "Error listening to chat channel:", err)
-		os.Exit(1)
+		log.Println("Error listening to channel:", err)
 	}
 
 	for {
 		notification, err := conn.Conn().WaitForNotification(context.Background())
 		if err != nil {
-			fmt.Fprintln(os.Stderr, "Error waiting for notification:", err)
-			os.Exit(1)
+			log.Println("Error waiting for notification:", err)
 		}
 
 		var entry DirectoryEntryNotification
@@ -47,9 +44,7 @@ func (l EntryNotificationListener) listen() {
 		contact, err := repo.CreateContact(context.Background(), CreateContact{FirstName: entry.FirstName, LastName: entry.LastName, Email: entry.Email, OwnerId: entry.UserID})
 
 		if err != nil {
-			fmt.Fprintln(os.Stderr, "Error creating contact: ", err)
-		} else {
-			fmt.Sprintln(contact)
+			log.Println("Error creating contact: %v", err)
 		}
 	}
 }

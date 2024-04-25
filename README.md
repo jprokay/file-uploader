@@ -5,7 +5,6 @@ NextJS frontend + Golang backend capable of handling large CSV files containing 
 New feature development is primarily driven by the [OpenAPI file](./backend/api.yaml)
 
 ## Running Locally
----
 ### Using devenv
 ```zsh
 devenv up
