@@ -30,8 +30,8 @@ func NewDirectoryService(pg repo.Postgres, owner repo.User) DirectoryService {
 }
 
 type errorResponse struct {
-	fileName string
-	error    string
+	FileName string
+	Error    string
 }
 
 type ProcessFormOpts struct {
@@ -51,7 +51,7 @@ func (ds *DirectoryService) ProcessForm(ctx context.Context, files []*multipart.
 		dir, err := dirRepo.CreateDirectory(ctx, doc)
 
 		if err != nil {
-			errors = append(errors, errorResponse{fileName: file.Filename, error: fmt.Sprintf("Failed to create directory: %v", err)})
+			errors = append(errors, errorResponse{FileName: file.Filename, Error: fmt.Sprintf("Failed to create directory: %v", err)})
 			continue
 		}
 
@@ -60,7 +60,7 @@ func (ds *DirectoryService) ProcessForm(ctx context.Context, files []*multipart.
 		src, err := file.Open()
 
 		if err != nil {
-			errors = append(errors, errorResponse{fileName: file.Filename, error: fmt.Sprintf("Failed to open file: %v", err)})
+			errors = append(errors, errorResponse{FileName: file.Filename, Error: fmt.Sprintf("Failed to open file: %v", err)})
 
 			updateDir.Status = "error"
 			_, _ = dirRepo.UpdateDirectory(ctx, updateDir)
@@ -76,7 +76,7 @@ func (ds *DirectoryService) ProcessForm(ctx context.Context, files []*multipart.
 		if err != nil {
 			updateDir.Status = "error"
 
-			errors = append(errors, errorResponse{fileName: file.Filename, error: fmt.Sprintf("Failed to read rows: %v", err)})
+			errors = append(errors, errorResponse{FileName: file.Filename, Error: fmt.Sprintf("Failed to read rows: %v", err)})
 		}
 
 		users := make([]repo.DirectoryEntry, 0, len(rows))
@@ -95,7 +95,7 @@ func (ds *DirectoryService) ProcessForm(ctx context.Context, files []*multipart.
 
 		if err != nil {
 			updateDir.Status = "error"
-			errors = append(errors, errorResponse{fileName: file.Filename, error: fmt.Sprintf("Failed to copy rows to DB: %v", err)})
+			errors = append(errors, errorResponse{FileName: file.Filename, Error: fmt.Sprintf("Failed to copy rows to DB: %v", err)})
 		} else {
 			updateDir.Status = "completed"
 		}

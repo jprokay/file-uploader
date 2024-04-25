@@ -32,7 +32,16 @@ func (s Server) CreateNewDirectory(ctx echo.Context, params CreateNewDirectoryPa
 	output, errors := ds.ProcessForm(ctx.Request().Context(), files, service.ProcessFormOpts{ExcludeFirstRow: exclude})
 
 	if len(errors) > 0 {
-		return ctx.JSON(http.StatusInternalServerError, output)
+		errorResp := make(ArrayOfDirectoryErrors, 0, len(errors))
+
+		for _, val := range errors {
+			log.Printf("%s has error %v", val.FileName, val.Error)
+			errorResp = append(errorResp, struct {
+				Error    *string "json:\"error,omitempty\""
+				FileName *string "json:\"fileName,omitempty\""
+			}{Error: &val.Error, FileName: &val.FileName})
+		}
+		return ctx.JSON(http.StatusInternalServerError, errorResp)
 	}
 	return ctx.JSON(http.StatusOK, output)
 }
