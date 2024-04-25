@@ -28,24 +28,25 @@ import { useMemo, useState } from "react"
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query"
 import { ChevronLeftIcon, ChevronRightIcon, ChevronsLeft, ChevronsRight } from "lucide-react"
 
+interface ItemsWithTotal<TData> {
+	items: TData[]
+	total: number
+}
+
 interface DataTableProps<TData, TValue> {
 	columns: ColumnDef<TData, TValue>[]
-	data: TData[]
-	queryFn: (state: PaginationState) => () => Promise<TData[]>
+	queryFn: (state: PaginationState) => () => Promise<ItemsWithTotal<TData>>
 	pageSizes: Array<number>
 	defaultPageSize: number
 	queryKey: string
-	rowCount: number
 }
 
 export function DataTable<TData, TValue>({
 	queryKey,
 	columns,
-	data,
 	queryFn,
 	pageSizes,
 	defaultPageSize,
-	rowCount
 }: DataTableProps<TData, TValue>) {
 	const [pagination, setPagination] = useState<PaginationState>({
 		pageIndex: 0,
@@ -60,7 +61,7 @@ export function DataTable<TData, TValue>({
 	const defaultData = useMemo(() => [], [])
 
 	const table = useReactTable({
-		data: dataQuery?.data || defaultData,
+		data: dataQuery?.data?.items || defaultData,
 		columns,
 		getCoreRowModel: getCoreRowModel(),
 		manualPagination: true,
@@ -69,7 +70,7 @@ export function DataTable<TData, TValue>({
 			pagination,
 		},
 		onPaginationChange: setPagination,
-		rowCount,
+		rowCount: dataQuery?.data?.total || 0,
 	})
 
 	const queryClient = useQueryClient()

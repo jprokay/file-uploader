@@ -39,6 +39,6 @@ func (s Server) GetEntriesForDirectory(ctx echo.Context, id int, params GetEntri
 		})
 	}
 
-	resp := EntriesWithTotal{Total: res.Count, Entries: des}
+	resp := EntriesWithTotal{Total: res.Count, Items: des}
 	return ctx.JSON(http.StatusOK, resp)
 }

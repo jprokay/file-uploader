@@ -35,7 +35,7 @@ func (s Server) GetAllContacts(ctx echo.Context, params GetAllContactsParams) er
 		})
 	}
 
-	resp := ContactsWithTotal{Total: res.Count, Contacts: contacts}
+	resp := ContactsWithTotal{Total: res.Count, Items: contacts}
 
 	return ctx.JSON(http.StatusOK, resp)
 }

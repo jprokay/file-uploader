@@ -79,15 +79,15 @@ export interface components {
       error?: string;
     };
     DirectoriesWithTotal: {
-      directories: components["schemas"]["Directory"][];
+      items: components["schemas"]["Directory"][];
       total: number;
     };
     ContactsWithTotal: {
-      contacts: components["schemas"]["Contact"][];
+      items: components["schemas"]["Contact"][];
       total: number;
     };
     EntriesWithTotal: {
-      entries: components["schemas"]["DirectoryEntry"][];
+      items: components["schemas"]["DirectoryEntry"][];
       total: number;
     };
   };

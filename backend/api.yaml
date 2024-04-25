@@ -318,37 +318,37 @@ components:
     DirectoriesWithTotal:
       type: object
       properties:
-        directories:
+        items:
           type: array
           items:
             $ref: '#/components/schemas/Directory'
         total:
           type: integer
       required:
-        - directories
+        - items 
         - total
     ContactsWithTotal:
       type: object
       properties:
-        contacts:
+        items:
           type: array
           items:
             $ref: '#/components/schemas/Contact'
         total:
           type: integer
       required:
-        - contacts 
+        - items 
         - total
     EntriesWithTotal:
       type: object
       properties:
-        entries:
+        items:
           type: array
           items:
             $ref: '#/components/schemas/DirectoryEntry'
         total:
           type: integer
       required:
-        - entries 
+        - items 
         - total
 

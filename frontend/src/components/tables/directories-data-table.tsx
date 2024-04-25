@@ -1,5 +1,5 @@
 "use client"
-import { Directories, Directory, client } from "@/lib/contacts-api"
+import { Directory, client } from "@/lib/contacts-api"
 import { DataTable } from "./data-table"
 import { ColumnDef, PaginationState } from "@tanstack/react-table"
 import { cookies, getCookieValue } from "@/lib/cookies"
@@ -56,14 +56,12 @@ async function getData(props: PaginationState) {
 		throw new Error('Oops something went wrong')
 	}
 
-	return res.data.directories
+	return res.data
 }
 
-export const DirectoriesDataTable = ({ data, rowCount }: { data: Directories, rowCount: number }) => {
+export const DirectoriesDataTable = () => {
 	return <DataTable queryKey={'directories'}
 		defaultPageSize={100} pageSizes={[25, 50, 100, 250, 500]}
-		data={data}
 		columns={columns}
-		rowCount={rowCount}
 		queryFn={(state) => () => getData(state)} />
 }

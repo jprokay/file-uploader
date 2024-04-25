@@ -8,17 +8,17 @@ export const client = createClient<paths>({
 
 export type ContactsWithTotal =
 	paths["/contacts"]["get"]["responses"]["200"]["content"]["application/json"];
-export type Contacts = ContactsWithTotal["contacts"];
+export type Contacts = ContactsWithTotal["items"];
 export type Contact = Contacts[0];
 
 export type DirectoriesWithTotal =
 	paths["/directories"]["get"]["responses"]["200"]["content"]["application/json"];
 
-export type Directories = DirectoriesWithTotal["directories"];
+export type Directories = DirectoriesWithTotal["items"];
 export type Directory = Directories[0];
 
 export type DirectoryEntriesWithTotal =
 	paths["/directories/{id}/entries"]["get"]["responses"]["200"]["content"]["application/json"];
 
-export type DirectoryEntries = DirectoryEntriesWithTotal["entries"];
+export type DirectoryEntries = DirectoryEntriesWithTotal["items"];
 export type DirectoryEntry = DirectoryEntries[0];

@@ -66,6 +66,6 @@ func (s Server) GetAllDirectories(ctx echo.Context, params GetAllDirectoriesPara
 		})
 	}
 
-	resp := DirectoriesWithTotal{Total: res.Count, Directories: ds}
+	resp := DirectoriesWithTotal{Total: res.Count, Items: ds}
 	return ctx.JSON(http.StatusOK, resp)
 }

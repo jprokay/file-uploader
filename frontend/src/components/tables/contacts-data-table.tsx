@@ -38,14 +38,13 @@ async function getData(props: PaginationState) {
 		throw new Error('Oops something went wrong')
 	}
 
-	return res.data.contacts
+	return res.data
 }
 
 
-export const ContactsDataTable = ({ data, rowCount }: { data: Contact[], rowCount: number }) => {
+export const ContactsDataTable = () => {
 	return <DataTable
 		queryKey={'contacts'} defaultPageSize={100} pageSizes={[25, 50, 100, 250, 500]}
-		data={data} columns={columns}
-		rowCount={rowCount}
+		columns={columns}
 		queryFn={(state) => () => getData(state)} />
 }

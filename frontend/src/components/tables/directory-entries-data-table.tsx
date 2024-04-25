@@ -51,13 +51,12 @@ async function getData(id: number, props: PaginationState) {
 		throw new Error('Oops something went wrong')
 	}
 
-	return res.data.entries
+	return res.data
 }
 
-export const DirectoryEntriesDataTable = ({ id, data, rowCount }: { id: number, data: DirectoryEntries, rowCount: number }) => {
+export const DirectoryEntriesDataTable = ({ id }: { id: number }) => {
 	return <DataTable queryKey={'entries'} defaultPageSize={100}
 		pageSizes={[25, 50, 100, 250, 500]}
-		data={data} columns={columns}
-		rowCount={rowCount}
+		columns={columns}
 		queryFn={(state) => () => getData(id, state)} />
 }

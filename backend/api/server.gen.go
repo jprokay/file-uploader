@@ -53,14 +53,14 @@ type Contact struct {
 
 // ContactsWithTotal defines model for ContactsWithTotal.
 type ContactsWithTotal struct {
-	Contacts []Contact `json:"contacts"`
-	Total    int       `json:"total"`
+	Items []Contact `json:"items"`
+	Total int       `json:"total"`
 }
 
 // DirectoriesWithTotal defines model for DirectoriesWithTotal.
 type DirectoriesWithTotal struct {
-	Directories []Directory `json:"directories"`
-	Total       int         `json:"total"`
+	Items []Directory `json:"items"`
+	Total int         `json:"total"`
 }
 
 // Directory defines model for Directory.
@@ -90,8 +90,8 @@ type DirectoryEntry struct {
 
 // EntriesWithTotal defines model for EntriesWithTotal.
 type EntriesWithTotal struct {
-	Entries []DirectoryEntry `json:"entries"`
-	Total   int              `json:"total"`
+	Items []DirectoryEntry `json:"items"`
+	Total int              `json:"total"`
 }
 
 // Error defines model for Error.
