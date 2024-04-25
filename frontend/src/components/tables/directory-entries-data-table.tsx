@@ -10,6 +10,10 @@ const ch = createColumnHelper<DirectoryEntry>();
 
 const columns: ColumnDef<DirectoryEntry>[] = [
 	{
+		accessorKey: 'order_id',
+		header: 'Row'
+	},
+	{
 		accessorKey: 'entry_first_name',
 		header: 'First Name'
 	},

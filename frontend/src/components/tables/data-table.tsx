@@ -24,8 +24,8 @@ import {
 	SelectValue,
 } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
-import { useState } from "react"
-import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { useMemo, useState } from "react"
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query"
 import { ChevronLeftIcon, ChevronRightIcon, ChevronsLeft, ChevronsRight } from "lucide-react"
 
 interface DataTableProps<TData, TValue> {
@@ -55,11 +55,12 @@ export function DataTable<TData, TValue>({
 	const dataQuery = useQuery({
 		queryKey: [queryKey, pagination],
 		queryFn: queryFn(pagination),
-		initialData: data,
+		placeholderData: keepPreviousData
 	})
+	const defaultData = useMemo(() => [], [])
 
 	const table = useReactTable({
-		data: dataQuery.data,
+		data: dataQuery?.data || defaultData,
 		columns,
 		getCoreRowModel: getCoreRowModel(),
 		manualPagination: true,
@@ -68,7 +69,7 @@ export function DataTable<TData, TValue>({
 			pagination,
 		},
 		onPaginationChange: setPagination,
-		rowCount
+		rowCount,
 	})
 
 	const queryClient = useQueryClient()
@@ -79,7 +80,7 @@ export function DataTable<TData, TValue>({
 			queryFn: queryFn(newPagination),
 			// Prefetch only fires when data is older than the staleTime,
 			// so in a case like this you definitely want to set one
-			staleTime: 60000,
+			staleTime: 60_000,
 		})
 	}
 
@@ -115,6 +116,7 @@ export function DataTable<TData, TValue>({
 								<TableRow
 									key={row.id}
 									data-state={row.getIsSelected() && "selected"}
+									className="even:bg-muted"
 								>
 									{row.getVisibleCells().map((cell) => (
 										<TableCell key={cell.id}>
@@ -132,7 +134,7 @@ export function DataTable<TData, TValue>({
 						)}
 					</TableBody>
 				</Table>
-				<div className="flex items-center justify-between px-2">
+				<div className="flex items-center justify-evenly px-2 my-4">
 					<div className="flex items-center space-x-6 lg:space-x-8">
 						<div className="flex items-center space-x-2">
 							<p className="text-sm font-medium">Rows per page</p>
@@ -182,6 +184,8 @@ export function DataTable<TData, TValue>({
 								className="h-8 w-8 p-0"
 								onClick={() => table.nextPage()}
 								disabled={!table.getCanNextPage()}
+								onMouseEnter={prefetchNextPage}
+								onFocus={prefetchNextPage}
 							>
 								<span className="sr-only">Go to next page</span>
 								<ChevronRightIcon className="h-4 w-4" />

@@ -9,6 +9,11 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Directory Uploader",
   description: "Manage a contact list uploaded from CSV",
+  icons: {
+    icon: [
+      { url: '/favicon.ico' }
+    ]
+  }
 };
 
 export default function RootLayout({
@@ -20,7 +25,12 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <Providers>
-          <Navigation />
+          <div className="flex border-b-current border-2 items-center px-8">
+            <p className="font-mono font-bold">
+              📧 Email Uploader 📒
+            </p>
+            <Navigation />
+          </div>
           {children}
         </Providers>
       </body>

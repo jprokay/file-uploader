@@ -44,8 +44,8 @@ func (pg *ContactRepo) GetAllContacts(ctx context.Context, params GetAllContacts
 
 	args := pgx.NamedArgs{
 		"userId": params.UserId,
-		"offset": params.Offset,
-		"limit":  params.Limit * params.Offset,
+		"offset": params.Offset * params.Limit,
+		"limit":  params.Limit,
 	}
 
 	rows, err := pg.DB.Query(ctx, query, args)

@@ -1,7 +1,7 @@
 "use client"
 import { Directories, Directory, client } from "@/lib/contacts-api"
 import { DataTable } from "./data-table"
-import { ColumnDef, PaginationState, createColumnHelper } from "@tanstack/react-table"
+import { ColumnDef, PaginationState } from "@tanstack/react-table"
 import { cookies, getCookieValue } from "@/lib/cookies"
 import { Badge } from "../ui/badge"
 
@@ -9,8 +9,6 @@ import { ExternalLink } from "lucide-react"
 import { Button } from "../ui/button"
 import Link from "next/link"
 import { UploadDirectoryDemo } from "../dialogs/upload-directory-dialog"
-
-const ch = createColumnHelper<Directory>();
 
 const columns: ColumnDef<Directory>[] = [
 	{

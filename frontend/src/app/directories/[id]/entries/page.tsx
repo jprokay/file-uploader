@@ -31,6 +31,10 @@ export default async function DirectoryEntries({ params }: { params: { id: numbe
   const data = await getData(params.id, { limit: 100, offset: 0 })
   return (
     <main className="container mx-auto py-10">
+
+      <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl mb-4">
+        Directory {params.id}
+      </h1>
       <DirectoryEntriesDataTable id={params.id} data={data.entries} rowCount={data.total} />
     </main>
   );

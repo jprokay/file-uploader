@@ -1,3 +1,4 @@
+import GetStartedAlert from "@/components/alerts/get-started-alert";
 import { ContactsDataTable } from "@/components/tables/contacts-data-table";
 import { ContactsWithTotal, client } from "@/lib/contacts-api";
 import { cookies } from 'next/headers'
@@ -31,6 +32,9 @@ export default async function Contacts() {
       <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl mb-4">
         Contacts
       </h1>
+      {data.total < 1 && <div className="my-4">
+        <GetStartedAlert />
+      </div>}
       <ContactsDataTable data={data.contacts} rowCount={data.total} />
     </main>
   )
