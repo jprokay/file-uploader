@@ -60,7 +60,7 @@ func main() {
 	// TODO: Update with production domain & use env vars
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		Skipper:          middleware.DefaultSkipper,
-		AllowOrigins:     []string{"http://localhost:3000"},
+		AllowOrigins:     []string{os.Getenv("BACKEND_ALLOW_ORIGIN")},
 		AllowCredentials: true,
 		AllowMethods:     []string{http.MethodGet, http.MethodHead, http.MethodPut, http.MethodPatch, http.MethodPost, http.MethodDelete},
 	}))
@@ -70,5 +70,5 @@ func main() {
 
 	api.RegisterHandlers(e, server)
 
-	log.Fatal(e.Start("0.0.0.0:8080"))
+	log.Fatal(e.Start(os.Getenv("BACKEND_HOST_PORT")))
 }

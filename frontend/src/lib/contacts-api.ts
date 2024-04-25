@@ -1,13 +1,8 @@
-import {
-	FetchArgType,
-	FetchReturnType,
-	Fetcher,
-} from "openapi-typescript-fetch";
 import { paths } from "./contacts";
 import createClient from "openapi-fetch";
 
 export const client = createClient<paths>({
-	baseUrl: "http://localhost:8080",
+	baseUrl: process.env.NEXT_PUBLIC_BACKEND_URL || process.env.BACKEND_URL,
 	credentials: "include",
 });
 

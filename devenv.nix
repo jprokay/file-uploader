@@ -41,6 +41,11 @@ in {
   env.DBMATE_MIGRATIONS_DIR = "./db/migrations";
   env.DBMATE_SCHEMA_FILE = "./db/schema.sql";
 
+  env.BACKEND_ALLOW_ORIGIN = "http://localhost:3000";
+  env.BACKEND_HOST_PORT = "0.0.0.0:8080"; 
+  env.BACKEND_URL = "http://localhost:8080";
+  env.NEXT_PUBLIC_BACKEND_URL = "http://localhost:8080";
+
   env.GOPLS = "${pkgs-unstable.gopls}/bin/gopls";
 
   # https://devenv.sh/languages/
