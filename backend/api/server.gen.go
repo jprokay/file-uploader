@@ -104,9 +104,10 @@ type ServerError = Error
 
 // GetAllContactsParams defines parameters for GetAllContacts.
 type GetAllContactsParams struct {
-	Limit  int    `form:"limit" json:"limit"`
-	Offset int    `form:"offset" json:"offset"`
-	UserId string `form:"userId" json:"userId"`
+	Limit  int     `form:"limit" json:"limit"`
+	Offset int     `form:"offset" json:"offset"`
+	Search *string `form:"search,omitempty" json:"search,omitempty"`
+	UserId string  `form:"userId" json:"userId"`
 }
 
 // GetAllDirectoriesParams defines parameters for GetAllDirectories.
@@ -137,9 +138,10 @@ type CreateNewDirectoryMultipartBodyColumnLayout string
 
 // GetEntriesForDirectoryParams defines parameters for GetEntriesForDirectory.
 type GetEntriesForDirectoryParams struct {
-	Limit  int    `form:"limit" json:"limit"`
-	Offset int    `form:"offset" json:"offset"`
-	UserId string `form:"userId" json:"userId"`
+	Limit  int     `form:"limit" json:"limit"`
+	Offset int     `form:"offset" json:"offset"`
+	Search *string `form:"search,omitempty" json:"search,omitempty"`
+	UserId string  `form:"userId" json:"userId"`
 }
 
 // CreateNewDirectoryMultipartRequestBody defines body for CreateNewDirectory for multipart/form-data ContentType.
@@ -196,6 +198,13 @@ func (w *ServerInterfaceWrapper) GetAllContacts(ctx echo.Context) error {
 	err = runtime.BindQueryParameter("form", true, true, "offset", ctx.QueryParams(), &params.Offset)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter offset: %s", err))
+	}
+
+	// ------------- Optional query parameter "search" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "search", ctx.QueryParams(), &params.Search)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter search: %s", err))
 	}
 
 	if cookie, err := ctx.Cookie("userId"); err == nil {
@@ -311,6 +320,13 @@ func (w *ServerInterfaceWrapper) GetEntriesForDirectory(ctx echo.Context) error 
 	err = runtime.BindQueryParameter("form", true, true, "offset", ctx.QueryParams(), &params.Offset)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter offset: %s", err))
+	}
+
+	// ------------- Optional query parameter "search" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "search", ctx.QueryParams(), &params.Search)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter search: %s", err))
 	}
 
 	if cookie, err := ctx.Cookie("userId"); err == nil {

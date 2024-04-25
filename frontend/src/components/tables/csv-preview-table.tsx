@@ -9,7 +9,7 @@ import {
 
 export function CsvPreviewTable({ rows, excludeFirstRow }: { rows: Array<Array<string>> | undefined, excludeFirstRow: boolean }) {
 
-	if (rows == undefined) {
+	if (rows == undefined || rows.length == 0) {
 		return (
 			<p>Upload a file to see a preview</p>
 		)

@@ -15,9 +15,10 @@ import { z } from "zod"
 import { client } from "@/lib/contacts-api"
 import { getCookieValue } from "@/lib/cookies"
 import { useQueryClient } from "@tanstack/react-query"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { CsvPreviewTable } from "../tables/csv-preview-table"
 import { Checkbox } from "../ui/checkbox"
+import { toast } from "sonner"
 
 const formSchema = z.object({
 	fileNames: z
@@ -27,6 +28,14 @@ const formSchema = z.object({
 	excludeFirstRow: z.boolean(),
 	columnLayout: z.array(z.string())
 })
+
+function successToast() {
+	toast.success('File uploaded successfully')
+}
+
+function errorToast() {
+	toast.error('An error has occurred')
+}
 
 export function UploadDirectoryForm() {
 
@@ -52,32 +61,42 @@ export function UploadDirectoryForm() {
 			}
 		}
 
-		await client.POST("/directories", {
-			body: {
-				columnLayout: ["first_name", "last_name", "email"],
-				excludeFirstRow: values.excludeFirstRow,
-				filename: files.map((f) => f.name)
-			}, params: {
-				cookie: { userId: getCookieValue("userId") || "" }
-			},
-			bodySerializer(_body) {
-				const fd = new FormData();
-				for (let i = 0; i < values.fileNames.length; i++) {
-					const item = values.fileNames.item(i)
-					if (item !== null) {
-						fd.append("filename", item)
+		try {
+			await client.POST("/directories", {
+				body: {
+					columnLayout: ["first_name", "last_name", "email"],
+					excludeFirstRow: values.excludeFirstRow,
+					filename: files.map((f) => f.name)
+				}, params: {
+					cookie: { userId: getCookieValue("userId") || "" }
+				},
+				bodySerializer(_body) {
+					const fd = new FormData();
+					for (let i = 0; i < values.fileNames.length; i++) {
+						const item = values.fileNames.item(i)
+						if (item !== null) {
+							fd.append("filename", item)
+						}
 					}
-				}
 
-				fd.set("excludeFirstRow", String(values.excludeFirstRow))
-				fd.set("columnLayout", new Blob(values.columnLayout, { type: "text/plain" }));
-				return fd;
-			},
-		})
-		await queryClient.invalidateQueries({ queryKey: ['directories'] })
+					fd.set("excludeFirstRow", String(values.excludeFirstRow))
+					fd.set("columnLayout", new Blob(values.columnLayout, { type: "text/plain" }));
+					return fd;
+				},
+			})
+			await queryClient.invalidateQueries({ queryKey: ['directories'] })
+		} catch {
+			errorToast()
+		}
 	}
 
 	const excludeFirstRow = form.watch("excludeFirstRow", true)
+
+	useEffect(() => {
+		if (form.formState.isSubmitSuccessful) {
+			successToast()
+		}
+	}, [form.formState.isSubmitSuccessful])
 
 	return (
 		<Form {...form}>
@@ -128,8 +147,11 @@ export function UploadDirectoryForm() {
 						</FormItem>
 					)}
 				/>
+				<h4 className="scroll-m-20 text-xl font-semibold tracking-tight">
+					Preview Table
+				</h4>
 				<CsvPreviewTable rows={preview} excludeFirstRow={excludeFirstRow} />
-				<Button type="submit" disabled={form.formState.isSubmitting}>Submit</Button>
+				<Button type="submit" disabled={form.formState.isSubmitting}>Upload</Button>
 			</form>
 		</Form>
 	)

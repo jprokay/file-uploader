@@ -10,7 +10,7 @@ import (
 func (s Server) GetEntriesForDirectory(ctx echo.Context, id int, params GetEntriesForDirectoryParams) error {
 	eRepo := s.pg.NewEntryRepo()
 
-	parms := repo.GetAllEntriesParams{DirectoryId: id, Offset: params.Offset, Limit: params.Limit, UserId: params.UserId}
+	parms := repo.GetAllEntriesParams{DirectoryId: id, Offset: params.Offset, Limit: params.Limit, UserId: params.UserId, Search: params.Search}
 
 	entries, err := eRepo.GetAllDirectoryEntries(ctx.Request().Context(), parms)
 

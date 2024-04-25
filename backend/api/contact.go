@@ -9,7 +9,8 @@ import (
 
 func (s Server) GetAllContacts(ctx echo.Context, params GetAllContactsParams) error {
 	cRepo := s.pg.NewContactRepo()
-	parms := repo.GetAllContactsParams{UserId: params.UserId, Limit: params.Limit, Offset: int(params.Offset)}
+
+	parms := repo.GetAllContactsParams{UserId: params.UserId, Limit: params.Limit, Offset: int(params.Offset), Search: params.Search}
 
 	dbContacts, err := cRepo.GetAllContacts(ctx.Request().Context(), parms)
 

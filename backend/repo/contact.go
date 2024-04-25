@@ -31,21 +31,38 @@ type GetAllContactsParams struct {
 	UserId string
 	Limit  int
 	Offset int
+	Search *string
 }
 
 // GetAllContacts queries the database for all Contacts
 func (pg *ContactRepo) GetAllContacts(ctx context.Context, params GetAllContactsParams) ([]Contact, error) {
-	query := `SELECT * FROM contacts
-						WHERE user_id = @userId
+	var query string
+	args := pgx.NamedArgs{
+		"userId": params.UserId,
+		"offset": params.Offset * params.Limit,
+		"limit":  params.Limit,
+	}
+	if params.Search != nil && len(*params.Search) > 0 {
+		query = `SELECT * FROM contacts
+						WHERE user_id = @userId AND contact_textsearchable_index_col @@ to_tsquery(@search || ':*')
 						ORDER BY contact_id
 						LIMIT @limit
 						OFFSET @offset
 						`
 
-	args := pgx.NamedArgs{
-		"userId": params.UserId,
-		"offset": params.Offset * params.Limit,
-		"limit":  params.Limit,
+		args = pgx.NamedArgs{
+			"userId": params.UserId,
+			"offset": params.Offset * params.Limit,
+			"limit":  params.Limit,
+			"search": &params.Search,
+		}
+	} else {
+		query = `SELECT * FROM contacts
+						WHERE user_id = @userId
+						ORDER BY contact_id
+						LIMIT @limit
+						OFFSET @offset
+						`
 	}
 
 	rows, err := pg.DB.Query(ctx, query, args)
@@ -59,12 +76,25 @@ func (pg *ContactRepo) GetAllContacts(ctx context.Context, params GetAllContacts
 
 // GetAllContacts queries the database for all Contacts
 func (pg *ContactRepo) GetCountOfContacts(ctx context.Context, params GetAllContactsParams) (CountResult, error) {
-	query := `SELECT count(*) FROM contacts
-						WHERE user_id = @userId
-						`
+
+	var query string
 
 	args := pgx.NamedArgs{
 		"userId": params.UserId,
+	}
+
+	if params.Search != nil && len(*params.Search) > 0 {
+		query = `SELECT count(*) FROM contacts
+						WHERE user_id = @userId AND contact_textsearchable_index_col @@ to_tsquery(@search || ':*')
+				`
+		args = pgx.NamedArgs{
+			"userId": params.UserId,
+			"search": &params.Search,
+		}
+	} else {
+		query = `SELECT count(*) FROM contacts
+						WHERE user_id = @userId
+				`
 	}
 
 	rows, err := pg.DB.Query(ctx, query, args)

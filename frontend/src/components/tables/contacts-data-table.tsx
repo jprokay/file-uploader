@@ -23,11 +23,11 @@ const columns: ColumnDef<Contact>[] = [
 	},
 ];
 
-async function getData(props: PaginationState) {
+async function getData(props: PaginationState, search: string | undefined) {
 
 	const res = await client.GET("/contacts", {
 		params: {
-			query: { limit: props.pageSize, offset: props.pageIndex },
+			query: { limit: props.pageSize, offset: props.pageIndex, search },
 			cookie: { userId: getCookieValue("userId") || "" }
 		},
 		headers: { Cookie: cookies() },
@@ -46,5 +46,6 @@ export const ContactsDataTable = () => {
 	return <DataTable
 		queryKey={'contacts'} defaultPageSize={100} pageSizes={[25, 50, 100, 250, 500]}
 		columns={columns}
-		queryFn={(state) => () => getData(state)} />
+		enableSearch={true}
+		queryFn={(state, search) => () => getData(state, search)} />
 }

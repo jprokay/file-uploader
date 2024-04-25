@@ -35,10 +35,10 @@ const columns: ColumnDef<DirectoryEntry>[] = [
 	}
 ]
 
-async function getData(id: number, props: PaginationState) {
+async function getData(id: number, props: PaginationState, search: string | undefined) {
 	const res = await client.GET("/directories/{id}/entries", {
 		params: {
-			query: { limit: props.pageSize, offset: props.pageIndex },
+			query: { limit: props.pageSize, offset: props.pageIndex, search },
 			cookie: { userId: getCookieValue("userId") || "" },
 			path: {
 				id
@@ -58,5 +58,6 @@ export const DirectoryEntriesDataTable = ({ id }: { id: number }) => {
 	return <DataTable queryKey={'entries'} defaultPageSize={100}
 		pageSizes={[25, 50, 100, 250, 500]}
 		columns={columns}
-		queryFn={(state) => () => getData(id, state)} />
+		enableSearch={true}
+		queryFn={(state, search) => () => getData(id, state, search)} />
 }

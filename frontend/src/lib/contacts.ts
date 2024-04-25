@@ -140,6 +140,7 @@ export interface operations {
       query: {
         limit: number;
         offset: number;
+        search?: string;
       };
       cookie: {
         userId: string;
@@ -163,6 +164,7 @@ export interface operations {
       query: {
         limit: number;
         offset: number;
+        search?: string;
       };
       path: {
         id: number;

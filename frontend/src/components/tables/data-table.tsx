@@ -27,6 +27,8 @@ import { Button } from "@/components/ui/button"
 import { useMemo, useState } from "react"
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query"
 import { ChevronLeftIcon, ChevronRightIcon, ChevronsLeft, ChevronsRight } from "lucide-react"
+import { Input } from "../ui/input"
+import { Label } from "../ui/label"
 
 interface ItemsWithTotal<TData> {
 	items: TData[]
@@ -35,10 +37,11 @@ interface ItemsWithTotal<TData> {
 
 interface DataTableProps<TData, TValue> {
 	columns: ColumnDef<TData, TValue>[]
-	queryFn: (state: PaginationState) => () => Promise<ItemsWithTotal<TData>>
+	queryFn: (state: PaginationState, search: string | undefined) => () => Promise<ItemsWithTotal<TData>>
 	pageSizes: Array<number>
 	defaultPageSize: number
 	queryKey: string
+	enableSearch: boolean
 }
 
 export function DataTable<TData, TValue>({
@@ -47,15 +50,18 @@ export function DataTable<TData, TValue>({
 	queryFn,
 	pageSizes,
 	defaultPageSize,
+	enableSearch
 }: DataTableProps<TData, TValue>) {
 	const [pagination, setPagination] = useState<PaginationState>({
 		pageIndex: 0,
 		pageSize: defaultPageSize
 	})
 
+	const [searchQuery, setSearchQuery] = useState<string>()
+
 	const dataQuery = useQuery({
-		queryKey: [queryKey, pagination],
-		queryFn: queryFn(pagination),
+		queryKey: [queryKey, pagination, searchQuery],
+		queryFn: queryFn(pagination, searchQuery),
 		placeholderData: keepPreviousData
 	})
 	const defaultData = useMemo(() => [], [])
@@ -78,7 +84,7 @@ export function DataTable<TData, TValue>({
 	const prefetch = (newPagination: PaginationState) => {
 		queryClient.prefetchQuery({
 			queryKey: [queryKey, newPagination],
-			queryFn: queryFn(newPagination),
+			queryFn: queryFn(newPagination, searchQuery),
 			// Prefetch only fires when data is older than the staleTime,
 			// so in a case like this you definitely want to set one
 			staleTime: 60_000,
@@ -91,6 +97,16 @@ export function DataTable<TData, TValue>({
 
 	return (
 		<div>
+			{enableSearch &&
+				(
+					<div className="grid w-full max-w-sm items-center gap-1.5 my-4">
+						<Label htmlFor="search">Filter Contacts</Label>
+						<div className="flex w-full max-w-sm items-center space-x-2">
+							<Input id="search" type="" placeholder="Search" onChange={(e) => setSearchQuery(e.target.value)} />
+							<Button type="button" onClick={() => setSearchQuery(undefined)}>Reset</Button>
+						</div>
+					</div>
+				)}
 			<div className="rounded-md border">
 				<Table>
 					<TableHeader>

@@ -4,7 +4,6 @@ import { DataTable } from "./data-table"
 import { ColumnDef, PaginationState } from "@tanstack/react-table"
 import { cookies, getCookieValue } from "@/lib/cookies"
 import { Badge } from "../ui/badge"
-
 import { ExternalLink } from "lucide-react"
 import { Button } from "../ui/button"
 import Link from "next/link"
@@ -15,9 +14,12 @@ const columns: ColumnDef<Directory>[] = [
 		accessorKey: 'directory_id',
 		id: 'actions',
 		cell: props => (
-			<Button variant="link" size="icon">
+			<Button variant="link" size="icon" className="mx-4">
 				<Link href={`/directories/${props.getValue()}/entries`}>
-					<ExternalLink className="h-4 w-4" />
+					<div className="flex items-center gap-2">
+						<ExternalLink className="h-4 w-4" />
+						<p className="font-mono">View</p>
+					</div>
 				</Link>
 			</Button>
 		),
@@ -63,5 +65,6 @@ export const DirectoriesDataTable = () => {
 	return <DataTable queryKey={'directories'}
 		defaultPageSize={100} pageSizes={[25, 50, 100, 250, 500]}
 		columns={columns}
+		enableSearch={false}
 		queryFn={(state) => () => getData(state)} />
 }

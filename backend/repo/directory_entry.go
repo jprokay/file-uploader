@@ -21,6 +21,8 @@ type DirectoryEntry struct {
 	BaseDirectoryEntry
 	ID         int  `db:"entry_id"`
 	EmailValid bool `db:"entry_email_valid"`
+
+	SearchCol string `db:"entry_textsearchable_index_col"`
 }
 
 type DirectoryEntryNotification struct {
@@ -86,7 +88,7 @@ func (pg *EntryRepo) CreateDirectoryEntry(ctx context.Context, entry DirectoryEn
 	}
 	defer rows.Close()
 
-	return pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[DirectoryEntry])
+	return pgx.CollectExactlyOneRow(rows, pgx.RowToStructByNameLax[DirectoryEntry])
 }
 
 type GetAllEntriesParams struct {
@@ -94,67 +96,89 @@ type GetAllEntriesParams struct {
 	Limit       int
 	Offset      int
 	UserId      string
+	Search      *string
 }
 
 // GetAllDirectoryEntries queries the database for all DirectoryEntries
 func (pg *EntryRepo) GetAllDirectoryEntries(ctx context.Context, params GetAllEntriesParams) ([]DirectoryEntry, error) {
-	query := `SELECT *
-						FROM directory_entries
-						WHERE directory_id = @directoryId AND user_id = @userId
-						ORDER BY order_id
-						LIMIT @limit
-						OFFSET @offset
-						`
-
+	var query string
 	args := pgx.NamedArgs{
 		"limit":       params.Limit,
 		"directoryId": params.DirectoryId,
 		"offset":      params.Limit * params.Offset,
 		"userId":      params.UserId,
 	}
+
+	if params.Search != nil && len(*params.Search) > 0 {
+		query = `SELECT *
+						FROM directory_entries
+						WHERE directory_id = @directoryId AND user_id = @userId
+							AND entry_textsearchable_index_col @@ to_tsquery(@search || ':*')
+						ORDER BY order_id
+						LIMIT @limit
+						OFFSET @offset
+						`
+		args = pgx.NamedArgs{
+			"limit":       params.Limit,
+			"directoryId": params.DirectoryId,
+			"offset":      params.Limit * params.Offset,
+			"userId":      params.UserId,
+			"search":      &params.Search,
+		}
+	} else {
+		query = `SELECT *
+						FROM directory_entries
+						WHERE directory_id = @directoryId AND user_id = @userId
+						ORDER BY order_id
+						LIMIT @limit
+						OFFSET @offset
+						`
+	}
+
 	rows, err := pg.DB.Query(ctx, query, args)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get directory_entries: %w", err)
 	}
 	defer rows.Close()
 
-	return pgx.CollectRows(rows, pgx.RowToStructByName[DirectoryEntry])
+	return pgx.CollectRows(rows, pgx.RowToStructByNameLax[DirectoryEntry])
 }
 
 func (pg *EntryRepo) GetCountOfDirectoryEntries(ctx context.Context, params GetAllEntriesParams) (CountResult, error) {
-	query := `SELECT count(*) as count
-						FROM directory_entries
-						WHERE directory_id = @directoryId AND user_id = @userId
-						`
+	var query string
 
 	args := pgx.NamedArgs{
 		"directoryId": params.DirectoryId,
 		"userId":      params.UserId,
 	}
+
+	if params.Search != nil && len(*params.Search) > 0 {
+
+		query = `SELECT count(*) as count
+						FROM directory_entries
+						WHERE directory_id = @directoryId AND user_id = @userId
+							AND entry_textsearchable_index_col @@ to_tsquery(@search || ':*')
+						`
+
+		args = pgx.NamedArgs{
+			"directoryId": params.DirectoryId,
+			"userId":      params.UserId,
+			"search":      &params.Search,
+		}
+	} else {
+		query = `SELECT count(*) as count
+						FROM directory_entries
+						WHERE directory_id = @directoryId AND user_id = @userId
+						`
+	}
+
 	rows, err := pg.DB.Query(ctx, query, args)
 	if err != nil {
 		return CountResult{}, fmt.Errorf("Failed to get directory_entries: %w", err)
 	}
 	defer rows.Close()
 
-	return pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[CountResult])
-}
-
-func (pg *DirectoryRepo) GetCountOfDirectoryEntries(ctx context.Context, uid string) (CountResult, error) {
-	query := `SELECT count(*) as count FROM directories
-		WHERE user_id = @ownerId
-`
-	args := pgx.NamedArgs{
-		"ownerId": uid,
-	}
-
-	rows, err := pg.DB.Query(ctx, query, args)
-	if err != nil {
-		return CountResult{}, fmt.Errorf("Failed to get directories: %w", err)
-	}
-	defer rows.Close()
-
-	return pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[CountResult])
+	return pgx.CollectExactlyOneRow(rows, pgx.RowToStructByNameLax[CountResult])
 }
 
 // DirectoryEntriesCopyFrom takes a slice of directory_entries and puts all in the database using the

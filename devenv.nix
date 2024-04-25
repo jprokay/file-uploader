@@ -66,7 +66,10 @@ in {
   # pre-commit.hooks.shellcheck.enable = true;
 
   # https://devenv.sh/processes/
-  # processes.ping.exec = "ping example.com";
+  processes = {
+    frontend.exec = "cd frontend && npm run dev";
+    backend.exec = "cd backend && go run server.go"; 
+  };
 
   # See full reference at https://devenv.sh/reference/options/
 }
